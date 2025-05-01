@@ -13,6 +13,7 @@ import { DragHandleDots2Icon } from "@radix-ui/react-icons"
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels"
 import { EmailComponentData } from "@/types/email-components"
 import { trpc } from "@/lib/trpc"
+import { TreeItem } from "@/components/FolderTree/types"
 import {
 	DndContext,
 	closestCenter,
@@ -82,6 +83,46 @@ export default function Home() {
 		},
 		onError: (error) => {
 			console.error("Folder update failed:", error)
+		},
+	})
+
+	const { mutate: renameTemplate } = trpc.email.renameTemplate.useMutation({
+		onSuccess: () => {
+			console.log("Template rename successful")
+			utils.email.getTemplates.invalidate()
+		},
+		onError: (error) => {
+			console.error("Template rename failed:", error)
+		},
+	})
+
+	const { mutate: renameFolder } = trpc.email.renameFolder.useMutation({
+		onSuccess: () => {
+			console.log("Folder rename successful")
+			utils.email.getTemplates.invalidate()
+		},
+		onError: (error) => {
+			console.error("Folder rename failed:", error)
+		},
+	})
+
+	const { mutate: deleteTemplate } = trpc.email.deleteTemplate.useMutation({
+		onSuccess: () => {
+			console.log("Template delete successful")
+			utils.email.getTemplates.invalidate()
+		},
+		onError: (error) => {
+			console.error("Template delete failed:", error)
+		},
+	})
+
+	const { mutate: deleteFolder } = trpc.email.deleteFolder.useMutation({
+		onSuccess: () => {
+			console.log("Folder delete successful")
+			utils.email.getTemplates.invalidate()
+		},
+		onError: (error) => {
+			console.error("Folder delete failed:", error)
 		},
 	})
 
@@ -372,14 +413,37 @@ export default function Home() {
 		}
 	}
 
-	const handleRename = (id: string) => {
-		// TODO: Implement rename functionality
-		console.log("Rename item:", id)
+	const findItem = (items: TreeItem[], id: string): TreeItem | null => {
+		for (const item of items) {
+			if (item.id === id) return item
+			if (item.type === "folder" && item.children) {
+				const found = findItem(item.children, id)
+				if (found) return found
+			}
+		}
+		return null
+	}
+
+	const handleRename = (id: string, newName: string) => {
+		if (id.startsWith("T-")) {
+			renameTemplate({
+				id: Number(id.replace("T-", "")),
+				name: newName,
+			})
+		} else if (id.startsWith("F-")) {
+			renameFolder({
+				id: Number(id.replace("F-", "")),
+				name: newName,
+			})
+		}
 	}
 
 	const handleDelete = (id: string) => {
-		// TODO: Implement delete functionality
-		console.log("Delete item:", id)
+		if (id.startsWith("T-")) {
+			deleteTemplate(Number(id.replace("T-", "")))
+		} else if (id.startsWith("F-")) {
+			deleteFolder(Number(id.replace("F-", "")))
+		}
 	}
 
 	if (isLoading) {

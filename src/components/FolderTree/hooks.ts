@@ -1,6 +1,7 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core"
 import { useRef, useEffect, useState } from "react"
 import type { TreeItem } from "./types"
+import { toast } from "sonner"
 
 export const useFolderItem = (item: TreeItem) => {
 	const { setNodeRef, attributes, listeners, isDragging } = useDraggable({
@@ -73,7 +74,10 @@ export const useMenu = (
 	}
 }
 
-export const useRename = (item: TreeItem, onRename?: (id: string) => void) => {
+export const useRename = (
+	item: TreeItem,
+	onRename?: (id: string, newName: string) => void
+) => {
 	const [isRenaming, setIsRenaming] = useState(false)
 	const [newName, setNewName] = useState(item.name)
 	const inputRef = useRef<HTMLInputElement>(null)
@@ -87,17 +91,28 @@ export const useRename = (item: TreeItem, onRename?: (id: string) => void) => {
 
 	const handleRename = () => {
 		if (newName.trim() && newName !== item.name) {
-			onRename?.(item.id)
+			onRename?.(item.id, newName)
+			toast.success(
+				`${
+					item.type === "folder" ? "Folder" : "Template"
+				} renamed successfully`
+			)
 		}
 		setIsRenaming(false)
 	}
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter") {
+			e.preventDefault()
 			handleRename()
 		} else if (e.key === "Escape") {
+			e.preventDefault()
 			setIsRenaming(false)
 			setNewName(item.name)
+		} else if (e.key === " ") {
+			e.preventDefault()
+			// Allow the space to be added to the input
+			setNewName((prev) => prev + " ")
 		}
 	}
 

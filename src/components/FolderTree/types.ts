@@ -19,7 +19,7 @@ export interface FolderTreeProps {
 		targetFolderId: string | null,
 		itemType: "template" | "folder"
 	) => void
-	onRename?: (id: string) => void
+	onRename?: (id: string, newName: string) => void
 	onDelete?: (id: string) => void
 }
 
@@ -33,6 +33,6 @@ export interface FolderTreeItemProps {
 		targetFolderId: string | null,
 		itemType: "folder" | "template"
 	) => void
-	onRename?: (id: string) => void
+	onRename?: (id: string, newName: string) => void
 	onDelete?: (id: string) => void
 }

@@ -65,18 +65,18 @@ export function FolderItem({
 			<div
 				ref={setDropRef}
 				className={cn(
-					"flex items-center p-2 mx-1 rounded cursor-pointer transition-colors duration-150 w-auto",
+					"group flex items-center p-2 mx-1 rounded cursor-pointer transition-colors duration-150 w-auto",
 					selectedId === item.id && "bg-blue-100",
 					isDragging && "bg-blue-50 opacity-50",
 					!selectedId && isOver && "bg-gray-100",
 					"hover:bg-gray-100"
-				)}
-				onClick={handleClick}>
+				)}>
 				<div
 					ref={setNodeRef}
 					{...listeners}
 					{...attributes}
-					className="flex items-center">
+					className="flex items-center flex-1"
+					onClick={handleClick}>
 					{hasChildren ? (
 						<div className="p-1">
 							{isExpanded ? (
@@ -111,14 +111,14 @@ export function FolderItem({
 							onChange={(e) => setNewName(e.target.value)}
 							onBlur={handleRename}
 							onKeyDown={handleKeyDown}
-							className="min-w-0 bg-transparent border-none focus:outline-none focus:ring-0 p-0"
+							className="min-w-0 bg-transparent border-none focus:outline-none focus:ring-0 p-0 text-blue-600 caret-blue-600"
 						/>
 					) : (
 						<span className="truncate">{item.name}</span>
 					)}
 				</div>
 				<div
-					className="ml-auto opacity-0 group-hover:opacity-100"
+					className="opacity-0 group-hover:opacity-100 px-2"
 					ref={menuRef}>
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
@@ -153,8 +153,6 @@ export function FolderItem({
 				<div
 					className={cn("border-l border-gray-200")}
 					style={{
-						// if level is 0 should be 16 px, otherwise, it should be marginLeft: `${level * 16}px`,
-						// marginLeft: `${level === 0 ? 16 : level * 16}px`,
 						marginLeft: "16px",
 					}}>
 					{item.children?.map((child) => (

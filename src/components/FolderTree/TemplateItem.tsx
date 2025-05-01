@@ -36,12 +36,13 @@ export function TemplateItem({
 			{...attributes}
 			{...listeners}
 			className={cn(
-				"flex items-center py-2 mx-1 rounded cursor-pointer transition-colors duration-150 w-auto hover:bg-gray-100",
+				"group flex items-center py-2 mx-1 rounded cursor-pointer transition-colors duration-150 w-auto hover:bg-gray-100",
 				selectedId === item.id && "bg-blue-100",
 				isDragging && "bg-blue-50 opacity-50"
-			)}
-			onClick={() => onSelect?.(item.id)}>
-			<div className="flex items-center gap-2 px-2">
+			)}>
+			<div
+				className="flex items-center gap-2 px-2 flex-1"
+				onClick={() => onSelect?.(item.id)}>
 				<FileText className="w-4 h-4 text-gray-500" />
 				{isRenaming ? (
 					<input
@@ -51,14 +52,14 @@ export function TemplateItem({
 						onChange={(e) => setNewName(e.target.value)}
 						onBlur={handleRename}
 						onKeyDown={handleKeyDown}
-						className="min-w-0 bg-transparent border-none focus:outline-none focus:ring-0 p-0"
+						className="min-w-0 bg-transparent border-none focus:outline-none focus:ring-0 p-0 text-blue-600 caret-blue-600"
 					/>
 				) : (
 					<span className="text-left">{item.name}</span>
 				)}
 			</div>
 			<div
-				className="ml-auto opacity-0 group-hover:opacity-100"
+				className="opacity-0 group-hover:opacity-100 px-2"
 				ref={menuRef}>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>

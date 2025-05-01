@@ -196,6 +196,36 @@ export const emailRouter = router({
 				.where(eq(emailTemplateFolders.id, id))
 		}),
 
+	renameTemplate: publicProcedure
+		.input(
+			z.object({
+				id: z.number(),
+				name: z.string(),
+			})
+		)
+		.mutation(async ({ input }) => {
+			const { id, name } = input
+			return await db
+				.update(emailTemplates)
+				.set({ name })
+				.where(eq(emailTemplates.id, id))
+		}),
+
+	renameFolder: publicProcedure
+		.input(
+			z.object({
+				id: z.number(),
+				name: z.string(),
+			})
+		)
+		.mutation(async ({ input }) => {
+			const { id, name } = input
+			return await db
+				.update(emailTemplateFolders)
+				.set({ name })
+				.where(eq(emailTemplateFolders.id, id))
+		}),
+
 	sendEmail: publicProcedure
 		.input(
 			z.object({
