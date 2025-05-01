@@ -8,7 +8,7 @@ import { DndEditor } from "@/components/DndEditor/DndEditor"
 import { ComponentPalette } from "@/components/DndEditor/ComponentPalette"
 import { DndEditorProvider } from "@/components/DndEditor/DndContext"
 import { NewTemplateDialog } from "@/components/dialogs/NewTemplateDialog"
-import { FolderTree } from "@/components/FolderTree"
+import { FolderTree } from "@/components/FolderTree/index"
 import { DragHandleDots2Icon } from "@radix-ui/react-icons"
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels"
 import { EmailComponentData } from "@/types/email-components"
@@ -98,10 +98,6 @@ export default function Home() {
 		const { active } = event
 		setActiveId(String(active.id))
 		document.body.setAttribute("data-dragging", "true")
-		console.log("Drag Start Event:", {
-			activeId: active.id,
-			activeData: active.data.current,
-		})
 
 		// Find the item being dragged
 		const findItem = (items: any[]): any => {
@@ -122,8 +118,14 @@ export default function Home() {
 		}
 
 		const draggedItem = findItem(templates || [])
-		setActiveItem(draggedItem)
-		console.log("Found dragged item:", draggedItem)
+		if (draggedItem) {
+			setActiveItem({
+				...draggedItem,
+				type:
+					draggedItem.type ||
+					(draggedItem.subject ? "template" : "folder"),
+			})
+		}
 	}
 
 	const handleDragEnd = (event: DragEndEvent) => {
@@ -348,6 +350,38 @@ export default function Home() {
 		setComponents((prev) => [...prev, component])
 	}
 
+	const handleDrop = (
+		itemId: string,
+		targetFolderId: string | null,
+		itemType: "template" | "folder"
+	) => {
+		if (itemType === "template") {
+			updateTemplate({
+				id: Number(itemId.replace("T-", "")),
+				folderId: targetFolderId
+					? Number(targetFolderId.replace("F-", ""))
+					: null,
+			})
+		} else if (itemType === "folder") {
+			updateFolder({
+				id: Number(itemId.replace("F-", "")),
+				parentId: targetFolderId
+					? Number(targetFolderId.replace("F-", ""))
+					: null,
+			})
+		}
+	}
+
+	const handleRename = (id: string) => {
+		// TODO: Implement rename functionality
+		console.log("Rename item:", id)
+	}
+
+	const handleDelete = (id: string) => {
+		// TODO: Implement delete functionality
+		console.log("Delete item:", id)
+	}
+
 	if (isLoading) {
 		return <div className="h-screen p-8">Loading...</div>
 	}
@@ -387,6 +421,9 @@ export default function Home() {
 										onSelect={(id) =>
 											setSelectedTemplate(id)
 										}
+										onDrop={handleDrop}
+										onRename={handleRename}
+										onDelete={handleDelete}
 									/>
 								</div>
 							</div>
@@ -465,13 +502,15 @@ export default function Home() {
 				</PanelGroup>
 				<DragOverlay>
 					{activeItem ? (
-						<div className="flex items-center gap-2 px-4 py-2 backdrop-blur-sm shadow-lg my-2 border border-gray-200 rounded-md opacity-60 bg-white/50">
+						<div className="flex items-center gap-2 px-4 py-2 bg-white shadow-lg rounded-md border border-gray-200">
 							{activeItem.type === "folder" ? (
 								<Folder size={16} className="text-gray-500" />
 							) : (
 								<FileText size={16} className="text-gray-500" />
 							)}
-							<span>{activeItem.name}</span>
+							<span className="text-sm font-medium">
+								{activeItem.name}
+							</span>
 						</div>
 					) : null}
 				</DragOverlay>
