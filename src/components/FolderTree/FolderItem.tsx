@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useFolderItem, useMenu, useRename } from "./hooks"
 import type { FolderTreeItemProps } from "./types"
+import { TemplateItem } from "./TemplateItem"
 
 export function FolderItem({
 	item,
@@ -60,32 +61,22 @@ export function FolderItem({
 	}
 
 	return (
-		<div className="relative">
+		<div className="flex flex-col">
 			<div
 				ref={setDropRef}
 				className={cn(
-					"group relative flex items-center py-2 rounded cursor-pointer transition-colors duration-150",
+					"flex items-center p-2 mx-1 rounded cursor-pointer transition-colors duration-150 w-auto",
 					selectedId === item.id && "bg-blue-100",
 					isDragging && "bg-blue-50 opacity-50",
 					!selectedId && isOver && "bg-gray-100",
 					"hover:bg-gray-100"
 				)}
 				onClick={handleClick}>
-				{level > 0 && (
-					<div
-						id="folder-tree-line"
-						className="absolute border-l border-gray-300"
-						style={{
-							height: "100%",
-							top: 0,
-						}}
-					/>
-				)}
 				<div
 					ref={setNodeRef}
 					{...listeners}
 					{...attributes}
-					className="flex items-center flex-1">
+					className="flex items-center">
 					{hasChildren ? (
 						<div className="p-1">
 							{isExpanded ? (
@@ -120,7 +111,7 @@ export function FolderItem({
 							onChange={(e) => setNewName(e.target.value)}
 							onBlur={handleRename}
 							onKeyDown={handleKeyDown}
-							className="flex-1 min-w-0 bg-transparent border-none focus:outline-none focus:ring-0 p-0"
+							className="min-w-0 bg-transparent border-none focus:outline-none focus:ring-0 p-0"
 						/>
 					) : (
 						<span className="truncate">{item.name}</span>
@@ -159,7 +150,13 @@ export function FolderItem({
 				</div>
 			</div>
 			{isFolder && isExpanded && (
-				<div>
+				<div
+					className={cn("border-l border-gray-200")}
+					style={{
+						// if level is 0 should be 16 px, otherwise, it should be marginLeft: `${level * 16}px`,
+						// marginLeft: `${level === 0 ? 16 : level * 16}px`,
+						marginLeft: "16px",
+					}}>
 					{item.children?.map((child) => (
 						<FolderItem
 							key={child.id}
@@ -173,7 +170,7 @@ export function FolderItem({
 						/>
 					))}
 					{item.templates?.map((template) => (
-						<FolderItem
+						<TemplateItem
 							key={template.id}
 							item={{
 								id: String(template.id),
