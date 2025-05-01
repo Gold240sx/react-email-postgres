@@ -1,103 +1,481 @@
-import Image from "next/image";
+"use client"
+
+import React, { useState } from "react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { CodeEditor } from "@/components/CodeEditor"
+import { Preview } from "@/components/Preview"
+import { DndEditor } from "@/components/DndEditor/DndEditor"
+import { ComponentPalette } from "@/components/DndEditor/ComponentPalette"
+import { DndEditorProvider } from "@/components/DndEditor/DndContext"
+import { NewTemplateDialog } from "@/components/dialogs/NewTemplateDialog"
+import { FolderTree } from "@/components/FolderTree"
+import { DragHandleDots2Icon } from "@radix-ui/react-icons"
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels"
+import { EmailComponentData } from "@/types/email-components"
+import { trpc } from "@/lib/trpc"
+import {
+	DndContext,
+	closestCenter,
+	KeyboardSensor,
+	PointerSensor,
+	useSensor,
+	useSensors,
+	DragStartEvent,
+	DragEndEvent,
+	DragOverlay,
+} from "@dnd-kit/core"
+import { nanoid } from "nanoid"
+import { FileText, Folder } from "lucide-react"
+
+function buildTreeItems(items: any[]): any[] {
+	console.log("Raw items:", JSON.stringify(items, null, 2))
+
+	// Convert IDs to strings and add type field
+	return items.map((item) => {
+		if ("subject" in item || "content" in item) {
+			// This is a template
+			return {
+				...item,
+				id: `T-${item.id}`,
+				folderId: item.folderId ? `F-${item.folderId}` : null,
+				type: "template" as const,
+			}
+		} else {
+			// This is a folder
+			return {
+				...item,
+				id: `F-${item.id}`,
+				parentId: item.parentId ? `F-${item.parentId}` : null,
+				type: "folder" as const,
+				children: item.children ? buildTreeItems(item.children) : [],
+				templates: item.templates ? buildTreeItems(item.templates) : [],
+			}
+		}
+	})
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+	const [components, setComponents] = useState<EmailComponentData[]>([])
+	const [selectedTemplate, setSelectedTemplate] = useState<string | null>(
+		null
+	)
+	const [activeTab, setActiveTab] = useState("code")
+	const { data: templates, isLoading } = trpc.email.getTemplates.useQuery()
+	const utils = trpc.useContext()
+	const [activeId, setActiveId] = useState<string | null>(null)
+	const [activeItem, setActiveItem] = useState<any | null>(null)
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+	const { mutate: updateTemplate } = trpc.email.updateTemplate.useMutation({
+		onSuccess: () => {
+			console.log("Template update successful")
+			utils.email.getTemplates.invalidate()
+		},
+		onError: (error) => {
+			console.error("Template update failed:", error)
+		},
+	})
+
+	const { mutate: updateFolder } = trpc.email.updateFolder.useMutation({
+		onSuccess: () => {
+			console.log("Folder update successful")
+			utils.email.getTemplates.invalidate()
+		},
+		onError: (error) => {
+			console.error("Folder update failed:", error)
+		},
+	})
+
+	const sensors = useSensors(
+		useSensor(PointerSensor, {
+			activationConstraint: {
+				distance: 8,
+			},
+		}),
+		useSensor(KeyboardSensor)
+	)
+
+	const handleDragStart = (event: DragStartEvent) => {
+		const { active } = event
+		setActiveId(String(active.id))
+		document.body.setAttribute("data-dragging", "true")
+		console.log("Drag Start Event:", {
+			activeId: active.id,
+			activeData: active.data.current,
+		})
+
+		// Find the item being dragged
+		const findItem = (items: any[]): any => {
+			for (const item of items) {
+				if (String(item.id) === String(active.id)) {
+					return item
+				}
+				if (item.children) {
+					const found = findItem(item.children)
+					if (found) return found
+				}
+				if (item.templates) {
+					const found = findItem(item.templates)
+					if (found) return found
+				}
+			}
+			return null
+		}
+
+		const draggedItem = findItem(templates || [])
+		setActiveItem(draggedItem)
+		console.log("Found dragged item:", draggedItem)
+	}
+
+	const handleDragEnd = (event: DragEndEvent) => {
+		const { active, over } = event
+		console.log("Drag End Event:", {
+			active: {
+				id: active.id,
+				data: active.data.current,
+			},
+			over: over
+				? {
+						id: over.id,
+						data: over.data.current,
+				  }
+				: null,
+		})
+
+		setActiveId(null)
+		setActiveItem(null)
+		document.body.removeAttribute("data-dragging")
+
+		if (!over) {
+			console.log("No valid drop target")
+			return
+		}
+
+		const activeId = active.data.current?.id
+		const activeType = active.data.current?.type
+		const overId = over.data.current?.id
+		const overType = over.data.current?.type
+
+		if (!activeId) {
+			console.log("Missing active data:", {
+				activeId,
+				activeType,
+			})
+			return
+		}
+
+		console.log("Processing drop:", {
+			activeId,
+			activeType,
+			overId,
+			overType,
+		})
+
+		// Handle root-level drops (when overId is "root")
+		if (overId === "root") {
+			console.log("Dropping item to root level")
+			if (activeType === "template") {
+				console.log("Updating template to root level:", {
+					id: Number(activeId.replace("T-", "")),
+					folderId: null,
+				})
+				updateTemplate({
+					id: Number(activeId.replace("T-", "")),
+					folderId: null,
+				})
+			} else if (activeType === "folder") {
+				console.log("Updating folder to root level:", {
+					id: Number(activeId.replace("F-", "")),
+					parentId: null,
+				})
+				updateFolder({
+					id: Number(activeId.replace("F-", "")),
+					parentId: null,
+				})
+			}
+			return
+		}
+
+		// Handle regular drops
+		if (activeType === "template") {
+			console.log("Updating template:", {
+				id: Number(activeId.replace("T-", "")),
+				folderId: Number(overId.replace("F-", "")),
+			})
+			updateTemplate({
+				id: Number(activeId.replace("T-", "")),
+				folderId: Number(overId.replace("F-", "")),
+			})
+		} else if (activeType === "folder") {
+			if (overType === "template") {
+				console.log("Dropping folder onto template")
+				const template = findTemplate(
+					templates || [],
+					Number(overId.replace("T-", ""))
+				)
+				if (!template) {
+					console.log("Template not found")
+					return
+				}
+
+				const targetFolderId = template.folderId
+				console.log("Using template's parent folder:", targetFolderId)
+
+				if (targetFolderId) {
+					const targetFolder = findFolder(
+						templates || [],
+						targetFolderId
+					)
+					if (
+						!targetFolder ||
+						isDescendant(
+							templates || [],
+							Number(activeId.replace("F-", "")),
+							targetFolderId
+						)
+					) {
+						console.log(
+							"Invalid folder drop - target not found or would create cycle"
+						)
+						return
+					}
+				}
+
+				console.log("Updating folder:", {
+					id: Number(activeId.replace("F-", "")),
+					parentId: targetFolderId,
+				})
+				updateFolder({
+					id: Number(activeId.replace("F-", "")),
+					parentId: targetFolderId,
+				})
+			} else {
+				console.log("Dropping folder onto folder")
+				if (overId) {
+					const targetFolder = findFolder(
+						templates || [],
+						Number(overId.replace("F-", ""))
+					)
+					if (
+						!targetFolder ||
+						isDescendant(
+							templates || [],
+							Number(activeId.replace("F-", "")),
+							Number(overId.replace("F-", ""))
+						)
+					) {
+						console.log(
+							"Invalid folder drop - target not found or would create cycle"
+						)
+						return
+					}
+				}
+
+				console.log("Updating folder:", {
+					id: Number(activeId.replace("F-", "")),
+					parentId: Number(overId.replace("F-", "")),
+				})
+				updateFolder({
+					id: Number(activeId.replace("F-", "")),
+					parentId: Number(overId.replace("F-", "")),
+				})
+			}
+		}
+	}
+
+	// Helper function to find a folder by ID
+	const findFolder = (items: any[], id: number): any => {
+		console.log("Finding folder with id:", id)
+		for (const item of items) {
+			const isFolder = !("subject" in item) && !("content" in item)
+			if (isFolder && item.id === id) {
+				console.log("Found folder:", item)
+				return item
+			}
+			if (item.children) {
+				const found = findFolder(item.children, id)
+				if (found) return found
+			}
+		}
+		console.log("Folder not found")
+		return null
+	}
+
+	// Helper function to check if a folder is a descendant of another folder
+	const isDescendant = (
+		items: any[],
+		folderId: number,
+		targetId: number
+	): boolean => {
+		console.log("Checking if folder is descendant:", { folderId, targetId })
+		const folder = findFolder(items, targetId)
+		if (!folder) return false
+
+		if (folder.parentId === folderId) {
+			console.log("Direct descendant found")
+			return true
+		}
+
+		if (folder.parentId) {
+			return isDescendant(items, folderId, folder.parentId)
+		}
+
+		console.log("No descendant relationship found")
+		return false
+	}
+
+	// Helper function to find a template by ID
+	const findTemplate = (items: any[], id: number): any => {
+		console.log("Finding template with id:", id)
+		for (const item of items) {
+			if ("subject" in item && item.id === id) {
+				console.log("Found template:", item)
+				return item
+			}
+			if (item.templates) {
+				const found = findTemplate(item.templates, id)
+				if (found) return found
+			}
+			if (item.children) {
+				const found = findTemplate(item.children, id)
+				if (found) return found
+			}
+		}
+		console.log("Template not found")
+		return null
+	}
+
+	const handleAddComponent = (component: EmailComponentData) => {
+		setComponents((prev) => [...prev, component])
+	}
+
+	if (isLoading) {
+		return <div className="h-screen p-8">Loading...</div>
+	}
+
+	const treeItems = buildTreeItems(templates || [])
+
+	return (
+		<div className="h-screen p-4">
+			<DndContext
+				sensors={sensors}
+				collisionDetection={closestCenter}
+				onDragStart={handleDragStart}
+				onDragEnd={handleDragEnd}>
+				<PanelGroup
+					autoSaveId="email-client-layout"
+					direction="horizontal"
+					className="h-full rounded-xl">
+					<Panel
+						defaultSize={20}
+						minSize={18}
+						maxSize={30}
+						className="rounded-xl shadow-xl border-white border-2 my-1">
+						<div className="h-full bg-gray-50">
+							<div
+								id="folder-tree-container"
+								className="h-full p-4">
+								<div className="flex justify-between items-center mb-4">
+									<h2 className="text-lg font-semibold">
+										Email Templates
+									</h2>
+									<NewTemplateDialog />
+								</div>
+								<div className="h-[calc(100%-3rem)]">
+									<FolderTree
+										items={treeItems}
+										selectedId={selectedTemplate}
+										onSelect={(id) =>
+											setSelectedTemplate(id)
+										}
+									/>
+								</div>
+							</div>
+						</div>
+					</Panel>
+					<PanelResizeHandle className="w-1 translate-x-0 hover:-translate-x-2 my-4 rounded-full hover:bg-blue-500/20 transition-all ease-in-out duration-300 relative">
+						<div className="h-full flex items-center justify-center absolute opacity-0 hover:opacity-100 transition-opacity duration-300">
+							<DragHandleDots2Icon className="h-8 w-4 text-gray-400 bg-white dark:bg-black rounded-full w-fit -translate-x-1.5 border border-gray-200" />
+						</div>
+					</PanelResizeHandle>
+					<Panel defaultSize={80}>
+						<div className="h-full">
+							<DndEditorProvider
+								components={components}
+								addComponent={handleAddComponent}>
+								<Tabs
+									defaultValue="code"
+									className="h-full flex flex-col"
+									onValueChange={setActiveTab}>
+									<div className="flex items-center px-4 py-2 border-b shrink-0">
+										<TabsList>
+											<TabsTrigger value="code">
+												Code
+											</TabsTrigger>
+											<TabsTrigger value="preview">
+												Preview
+											</TabsTrigger>
+											<TabsTrigger value="editor">
+												Visual Editor
+											</TabsTrigger>
+										</TabsList>
+									</div>
+									<div className="flex grow h-[calc(100%-53px)]">
+										<div className="flex-1 h-full">
+											<TabsContent
+												value="code"
+												className="h-full m-0 p-0">
+												<CodeEditor
+													templateId={
+														selectedTemplate
+															? Number(
+																	selectedTemplate.replace(
+																		"T-",
+																		""
+																	)
+															  )
+															: null
+													}
+												/>
+											</TabsContent>
+											<TabsContent
+												value="preview"
+												className="h-full m-0 p-0">
+												<Preview />
+											</TabsContent>
+											<TabsContent
+												value="editor"
+												className="h-full m-0 p-0">
+												<DndEditor />
+											</TabsContent>
+										</div>
+										{activeTab === "editor" && (
+											<div className="w-64 border-l h-full">
+												<ComponentPalette
+													onAddComponent={
+														handleAddComponent
+													}
+												/>
+											</div>
+										)}
+									</div>
+								</Tabs>
+							</DndEditorProvider>
+						</div>
+					</Panel>
+				</PanelGroup>
+				<DragOverlay>
+					{activeItem ? (
+						<div className="flex items-center gap-2 px-4 py-2 backdrop-blur-sm shadow-lg my-2 border border-gray-200 rounded-md opacity-60 bg-white/50">
+							{activeItem.type === "folder" ? (
+								<Folder size={16} className="text-gray-500" />
+							) : (
+								<FileText size={16} className="text-gray-500" />
+							)}
+							<span>{activeItem.name}</span>
+						</div>
+					) : null}
+				</DragOverlay>
+			</DndContext>
+		</div>
+	)
 }
